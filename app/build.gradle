@@ -1,0 +1,113 @@
+
+plugins {
+    // Apply the java-library plugin for building a library
+    id 'java-library'
+    // Apply the maven-publish plugin for publishing to Maven repositories
+    id 'maven-publish'
+}
+
+repositories {
+    // Use Maven Central for resolving dependencies.
+    mavenCentral()
+}
+
+dependencies {
+    // Custom local version of debug core library
+    implementation files('libs/com.microsoft.java.debug.core-0.53.1.jar')
+
+    // Dependencies that the debug core library needs
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation 'com.google.code.gson:gson:2.10.1'
+
+    // RxJava dependencies required by the Microsoft debug core library
+    api 'io.reactivex.rxjava2:rxjava:2.2.21'
+
+    // This dependency is used by the application.
+    implementation libs.guava
+}
+
+// Apply a specific Java toolchain to ease working on different environments.
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+// Load local.properties if it exists
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withInputStream { localProperties.load(it) }
+}
+
+// Version for the project
+version = '1.0.1'
+group = 'brew.debug'
+
+// Configure the JAR task to use a better name
+jar {
+    archiveBaseName = 'brew-debug-host'
+    archiveVersion = version
+    archiveClassifier = ''
+
+    // Include a manifest with library information
+    manifest {
+        attributes(
+            'Implementation-Title': 'Brew Debug Host',
+            'Implementation-Version': version,
+            'Implementation-Vendor': 'Brew Debug Host'
+        )
+    }
+}
+
+// Configure Maven publishing
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+
+            groupId = group
+            artifactId = 'brew-debug-host'
+            version = version
+
+            pom {
+                name = 'Brew Debug Host'
+                description = 'A library for building debug adapters for the Brew language/VM'
+                url = 'https://github.com/TimKingtonFC/brew-debug-host'
+
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://opensource.org/licenses/MIT'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'TimKingtonFC'
+                        name = 'Tim Kington'
+                        email = 'tim.kington@gmail.com'
+                    }
+                }
+
+                scm {
+                    connection = 'scm:git:git://github.com/TimKingtonFC/brew-debug-host.git'
+                    developerConnection = 'scm:git:ssh://github.com:TimKingtonFC/brew-debug-host.git'
+                    url = 'https://github.com/TimKingtonFC/brew-debug-host'
+                }
+            }
+        }
+    }
+
+    repositories {
+        // For publishing to GitHub Packages (alternative)
+        maven {
+            name = 'GitHubPackages'
+            url = uri('https://maven.pkg.github.com/TimKingtonFC/brew-debug-host')
+            credentials {
+                username = localProperties.getProperty('githubUsername') ?: project.findProperty('githubUsername') ?: System.getenv('GITHUB_USERNAME')
+                password = localProperties.getProperty('githubToken') ?: project.findProperty('githubToken') ?: System.getenv('GITHUB_TOKEN')
+            }
+        }
+    }
+}
