@@ -41,7 +41,7 @@ if (localPropertiesFile.exists()) {
 }
 
 // Version for the project
-version = '1.0.1'
+version = '1.0.2'
 group = 'brew.debug'
 
 // Configure the JAR task to use a better name

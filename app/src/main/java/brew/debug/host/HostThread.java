@@ -134,6 +134,8 @@ public class HostThread extends Thread {
         thread = executionEngine.startThread(file, entryPoint, msg -> da.output(Category.stdout, msg + "\n"));
         if (stopOnEntry) {
             stop("entry");
+        } else {
+            stopIfNecessary();
         }
 
         synchronized (this) {
@@ -157,30 +159,7 @@ public class HostThread extends Thread {
                             return;
                         }
 
-                        Stack<? extends IStackFrame> callStack = thread.getDebugCallStack();
-                        IStackFrame frame = callStack.peek();
-                        IFunction function = frame.getFunction();
-                        File filename = function.getFile();
-
-                        if (!executionEngine.isInternalFile(filename)) {
-                            if (breakpointsByFile
-                                    .computeIfAbsent(filename, k -> new HashMap<>())
-                                    // TODO: Move getSourceLine to frame
-                                    .get(function.getSourceLine(frame.getProgramCounter())) != null &&
-                                    thread.atFirstInstructionOnLine()) {
-                                stop("breakpoint");
-                            } else if (instructionBreakpoints.contains(frame.getProgramCounterAddress())) {
-                                stop("instruction breakpoint");
-                            }
-                            if (state == State.Stepping) {
-                                if (maxStopFrame == NO_STOP_FRAME || callStack.size() <= maxStopFrame) {
-                                    if (steppingGranularity == SteppingGranularity.INSTRUCTION ||
-                                            thread.atFirstInstructionOnLine()) {
-                                        stop("step");
-                                    }
-                                }
-                            }
-                        }
+                        stopIfNecessary();
                         break;
                     case Suspended:
                         try {
@@ -191,6 +170,32 @@ public class HostThread extends Thread {
                         break;
                     case Terminated:
                         return;
+                }
+            }
+        }
+    }
+
+    private void stopIfNecessary() {
+        Stack<? extends IStackFrame> callStack = thread.getDebugCallStack();
+        IStackFrame frame = callStack.peek();
+        IFunction function = frame.getFunction();
+        File filename = function.getFile();
+
+        if (!executionEngine.isInternalFile(filename)) {
+            if (breakpointsByFile
+                    .computeIfAbsent(filename, k -> new HashMap<>())
+                    .get(function.getSourceLine(frame.getProgramCounter())) != null &&
+                    thread.atFirstInstructionOnLine()) {
+                stop("breakpoint");
+            } else if (instructionBreakpoints.contains(frame.getProgramCounterAddress())) {
+                stop("instruction breakpoint");
+            }
+            if (state == State.Stepping) {
+                if (maxStopFrame == NO_STOP_FRAME || callStack.size() <= maxStopFrame) {
+                    if (steppingGranularity == SteppingGranularity.INSTRUCTION ||
+                            thread.atFirstInstructionOnLine()) {
+                        stop("step");
+                    }
                 }
             }
         }
