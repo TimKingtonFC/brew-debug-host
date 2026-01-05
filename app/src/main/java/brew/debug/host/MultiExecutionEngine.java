@@ -43,13 +43,6 @@ public class MultiExecutionEngine extends ExecutionEngine {
     }
 
     @Override
-    public int resolveInstructionReference(String instructionReference, int offset) {
-        // Instruction references must start with the file extension.
-        String type = instructionReference.substring(0, instructionReference.indexOf(":"));
-        return enginesByFileExtension.get(type).resolveInstructionReference(instructionReference, offset);
-    }
-
-    @Override
     public IThread startThread(File file, String entryPoint, Console console) {
         return getEngine(file).startThread(file, entryPoint, console);
     }

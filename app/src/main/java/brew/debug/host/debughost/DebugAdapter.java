@@ -131,6 +131,10 @@ public class DebugAdapter implements IVMDebugAdapter {
                 response.body = new Responses.VariablesResponseBody(
                         hostThread.getVariables(varArgs.variablesReference));
             }
+            // case EVALUATE -> {
+            //     var evArgs = (EvaluateArguments) cmdArgs;
+
+            // }
             case SETBREAKPOINTS -> {
                 var bpts = hostThread.setBreakpoints((SetBreakpointArguments) cmdArgs);
                 response.body = new Responses.SetBreakpointsResponseBody(bpts);
@@ -141,11 +145,8 @@ public class DebugAdapter implements IVMDebugAdapter {
             }
             case SETINSTRUCTIONBREAKPOINTS -> {
                 InstructionBreakpoint[] breakpoints = ((SetInstructionBreakpointsArguments) cmdArgs).breakpoints;
-                hostThread.setInstructionBreakpoints(breakpoints);
-
-                if (launched) {
-                    hostThread.verifyBreakpoints();
-                }
+                response.body = new Responses.SetInstructionBreakpointsResponseBody(
+                        hostThread.setInstructionBreakpoints(breakpoints));
             }
             // case SETEXCEPTIONBREAKPOINTS -> {
             //     var ebpts = (SetExceptionBreakpointsArguments) cmdArgs;
@@ -224,6 +225,10 @@ public class DebugAdapter implements IVMDebugAdapter {
                     function.getSourceLine(vmFrame.getProgramCounter()), 0, null);
 
             String instruction = vmFrame.getInstructionPointerReference();
+            if (!instruction.startsWith("0x")) {
+                throw new RuntimeException(
+                        "Bad instruction reference format (must be a hex number, e.g. 0x40000): " + instruction);
+            }
             if (instruction != null) {
                 frame.setInstructionPointerReference(instruction);
             }

@@ -12,8 +12,6 @@ public abstract class ExecutionEngine {
 
     public abstract IFunction resolveFunction(File file, int lineNumber);
 
-    public abstract int resolveInstructionReference(String instructionReference, int offset);
-
     public abstract IThread startThread(File file, String entryPoint, Console console);
 
     public void compileFile(File file) {

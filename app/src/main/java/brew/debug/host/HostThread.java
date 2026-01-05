@@ -44,7 +44,6 @@ public class HostThread extends Thread {
     private volatile State state;
     private volatile SteppingGranularity steppingGranularity;
     private Map<File, Map<Integer, Breakpoint>> breakpointsByFile = new HashMap<>();
-    private List<Breakpoint> unverifiedInstructionBreakpoints = new ArrayList<>();
     private Set<Integer> instructionBreakpoints = new HashSet<>();
     private int maxStopFrame;
     private int nextBreakpointId;
@@ -79,7 +78,12 @@ public class HostThread extends Thread {
             List<Breakpoint> movedBreakpoints = new ArrayList<>();
             for (var iter = breakpointsByLine.values().iterator(); iter.hasNext();) {
                 Breakpoint br = iter.next();
-                IFunction function = executionEngine.resolveFunction(file, br.line - 1);
+                IFunction function;
+                try {
+                    function = executionEngine.resolveFunction(file, br.line - 1);
+                } catch (Exception e) {
+                    function = null;
+                }
                 if (function == null) {
                     if (br.verified) {
                         br.verified = false;
@@ -105,19 +109,6 @@ public class HostThread extends Thread {
                 // TODO: Is old entry still on old line?
                 breakpointsByLine.put(br.line, br);
             }
-        }
-
-        for (Breakpoint br : unverifiedInstructionBreakpoints) {
-            int address = executionEngine.resolveInstructionReference(br.instructionReference, br.offset);
-            if (address == 0) {
-                if (br.verified) {
-                    br.verified = false;
-                    updatedBreakpoints.add(br);
-                }
-                continue;
-            }
-
-            instructionBreakpoints.add(address);
         }
 
         if (!updatedBreakpoints.isEmpty()) {
@@ -247,13 +238,21 @@ public class HostThread extends Thread {
 
     public synchronized List<Breakpoint> setInstructionBreakpoints(InstructionBreakpoint[] breakpoints) {
         instructionBreakpoints.clear();
-        unverifiedInstructionBreakpoints.clear();
+        List<Breakpoint> normalizedBreakpoints = new ArrayList<>();
 
         for (InstructionBreakpoint ib : breakpoints) {
-            Breakpoint bp = new Breakpoint(nextBreakpointId++, false, ib.instructionReference, ib.offset);
-            unverifiedInstructionBreakpoints.add(bp);
+            if (!ib.instructionReference.startsWith("0x")) {
+                throw new RuntimeException("Bad instruction reference format (must be a hex number, e.g. 0x40000): "
+                        + ib.instructionReference);
+            }
+
+            int address = Integer.parseInt(ib.instructionReference.substring(2), 16) + ib.offset;
+            instructionBreakpoints.add(address);
+
+            Breakpoint bp = new Breakpoint(nextBreakpointId++, true, String.format("0x%08x", address), 0);
+            normalizedBreakpoints.add(bp);
         }
-        return unverifiedInstructionBreakpoints;
+        return normalizedBreakpoints;
     }
 
     public Stack<? extends IStackFrame> getCallStack() {
