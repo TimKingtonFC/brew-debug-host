@@ -37,6 +37,10 @@ public class HostThread extends Thread {
 
     private static final int NO_STOP_FRAME = -1;
 
+    public static String formatAddress(int address) {
+        return String.format("0x%08x", address);
+    }
+
     private IVMDebugAdapter da;
     private ExecutionEngine executionEngine;
     private File file;
@@ -238,7 +242,7 @@ public class HostThread extends Thread {
 
     public synchronized List<Breakpoint> setInstructionBreakpoints(InstructionBreakpoint[] breakpoints) {
         instructionBreakpoints.clear();
-        List<Breakpoint> normalizedBreakpoints = new ArrayList<>();
+        List<Breakpoint> responseBreakpoints = new ArrayList<>();
 
         for (InstructionBreakpoint ib : breakpoints) {
             if (!ib.instructionReference.startsWith("0x")) {
@@ -249,10 +253,10 @@ public class HostThread extends Thread {
             int address = Integer.parseInt(ib.instructionReference.substring(2), 16) + ib.offset;
             instructionBreakpoints.add(address);
 
-            Breakpoint bp = new Breakpoint(nextBreakpointId++, true, String.format("0x%08x", address), 0);
-            normalizedBreakpoints.add(bp);
+            Breakpoint bp = new Breakpoint(address, true, ib.instructionReference, ib.offset);
+            responseBreakpoints.add(bp);
         }
-        return normalizedBreakpoints;
+        return responseBreakpoints;
     }
 
     public Stack<? extends IStackFrame> getCallStack() {

@@ -15,9 +15,6 @@ import com.microsoft.java.debug.core.protocol.Types.Variable;
 public interface IThread {
     boolean step();
 
-    // Returns the fully qualified method name.
-    String getCurrentMethodName();
-
     boolean atFirstInstructionOnLine();
 
     Stack<? extends IStackFrame> getDebugCallStack();

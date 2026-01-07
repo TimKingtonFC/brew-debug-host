@@ -224,7 +224,7 @@ public class DebugAdapter implements IVMDebugAdapter {
                     new Source(function.getFile().getName(), function.getFile().getAbsolutePath(), 0),
                     function.getSourceLine(vmFrame.getProgramCounter()), 0, null);
 
-            String instruction = vmFrame.getInstructionPointerReference();
+            String instruction = vmFrame.getProgramCounterReference();
             if (!instruction.startsWith("0x")) {
                 throw new RuntimeException(
                         "Bad instruction reference format (must be a hex number, e.g. 0x40000): " + instruction);

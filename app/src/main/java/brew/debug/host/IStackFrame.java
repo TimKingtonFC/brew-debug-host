@@ -7,5 +7,5 @@ public interface IStackFrame {
 
     int getProgramCounterAddress();
 
-    String getInstructionPointerReference();
+    String getProgramCounterReference();
 }
